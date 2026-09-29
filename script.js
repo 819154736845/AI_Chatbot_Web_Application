@@ -1,0 +1,11 @@
+const chatBox=document.getElementById("chatBox"),form=document.getElementById("chatForm"),input=document.getElementById("messageInput"),send=document.querySelector(".send-btn"),clear=document.getElementById("clearBtn");
+const KEY="nova_chat_history";
+function removeWelcome(){const w=document.getElementById("welcome");if(w)w.remove()}
+function addMessage(text,sender,save=true){removeWelcome();const row=document.createElement("div");row.className=`message ${sender}`;const avatar=document.createElement("div");avatar.className="avatar";avatar.textContent=sender==="user"?"You":"✦";const bubble=document.createElement("div");bubble.className="bubble";bubble.textContent=text;row.append(avatar,bubble);chatBox.appendChild(row);chatBox.scrollTop=chatBox.scrollHeight;if(save)saveMessage({text,sender})}
+function saveMessage(m){const h=JSON.parse(localStorage.getItem(KEY)||"[]");h.push(m);localStorage.setItem(KEY,JSON.stringify(h.slice(-50)))}
+function typing(){removeWelcome();const row=document.createElement("div");row.className="message bot";row.id="typing";row.innerHTML='<div class="avatar">✦</div><div class="bubble"><span class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>';chatBox.appendChild(row);chatBox.scrollTop=chatBox.scrollHeight}
+async function sendMessage(msg){msg=msg.trim();if(!msg)return;addMessage(msg,"user");input.value="";send.disabled=true;typing();try{const r=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});if(!r.ok)throw Error();const d=await r.json();await new Promise(x=>setTimeout(x,500));document.getElementById("typing")?.remove();addMessage(d.reply,"bot")}catch(e){document.getElementById("typing")?.remove();addMessage("Sorry, I could not connect to the Python backend. Please check that Flask is running.","bot")}finally{send.disabled=false;input.focus()}}
+form.addEventListener("submit",e=>{e.preventDefault();sendMessage(input.value)});
+document.addEventListener("click",e=>{if(e.target.matches(".quick-btn"))sendMessage(e.target.dataset.message)});
+clear.addEventListener("click",()=>{localStorage.removeItem(KEY);location.reload()});
+const history=JSON.parse(localStorage.getItem(KEY)||"[]");history.forEach(m=>addMessage(m.text,m.sender,false));input.focus();
